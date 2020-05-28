@@ -64,15 +64,18 @@ model.train(False)
 images = []
 labels = []
 embeddings = []
-for data in valid_loader:
-    inputs_batch, labels_batch = data
-    inputs_batch = Variable(inputs_batch).to(device)
-    outputs = model(inputs_batch)
-    outputs = F.normalize(outputs, p=2, dim=1)
-    for i in range(len(inputs_batch)):
-        images.append(unnormalize(inputs_batch[i]).cpu().detach().numpy())
-        labels.append(labels_batch[i])
-        embeddings.append(outputs[i].cpu().detach().numpy())
+with torch.no_grad():
+    for data in valid_loader:
+        inputs_batch, labels_batch = data
+        inputs_batch = Variable(inputs_batch).to(device)
+        outputs = model(inputs_batch)
+        outputs = F.normalize(outputs, p=2, dim=1)
+        for i in range(len(inputs_batch)):
+            images.append(unnormalize(inputs_batch[i]).cpu().detach().numpy())
+            labels.append(labels_batch[i])
+            embeddings.append(outputs[i].cpu().detach().numpy())
+        optimizer.zero_grad()
+del(inputs_batch)
 
 images = np.array(images)
 embeddings = np.array(embeddings)
@@ -98,3 +101,12 @@ query_embeddings = embeddings[:valid_dataset.query_count]
 retrieval_labels = labels[valid_dataset.query_count:]
 retrieval_embeddings = embeddings[valid_dataset.query_count:]
 validate_model(query_labels, query_embeddings, retrieval_labels, retrieval_embeddings)
+
+
+# Параменты препроцессинга для валидации
+data_valid_transform = transforms.Compose([
+    Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=mean, std=std)
+])
