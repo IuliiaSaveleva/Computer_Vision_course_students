@@ -6,6 +6,22 @@ from dataset_class import ValidationDataset
 
 
 
+# подгрузка весов, обученных на ImageNet
+model = resnet.resnet50(num_classes=128, pretrained=False)
+model_dict = model.state_dict()
+state_dict = torch.load('ResNet-50_pretrained_on_ImageNet/model.pth')
+state_dict = {k: v for k, v in state_dict.items() if k in model_dict and v.size() == model_dict[k].size()}
+model_dict.update(state_dict)
+model.load_state_dict(model_dict)
+
+# перевести модель в eval mode
+def set_bn_eval(module):
+    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+        module.eval()
+model.apply(set_bn_eval)
+
+
+
 class UnNormalize(object):
     def __init__(self, mean, std):
         self.mean = mean
